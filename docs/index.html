@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Tracker</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0f766e" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Tracker" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <span class="app-title" id="header-title">Tracker</span>
+  <nav class="tabs">
+    <button data-screen="entry" class="tab active">Entry</button>
+    <button data-screen="history" class="tab">History</button>
+    <button data-screen="export" class="tab">Export</button>
+    <button data-screen="settings" class="tab">⚙</button>
+  </nav>
+</header>
+
+<main id="app-main">
+  <!-- ENTRY -->
+  <section id="screen-entry" class="screen active">
+    <label class="field-label" for="entry-date">Date</label>
+    <input type="date" id="entry-date" />
+    <div id="entry-form"></div>
+    <button id="btn-save" class="btn primary big">Save</button>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="screen-history" class="screen">
+    <h2>History</h2>
+    <div id="history-list"></div>
+    <button id="btn-more" class="btn" hidden>Show more</button>
+  </section>
+
+  <!-- EXPORT -->
+  <section id="screen-export" class="screen">
+    <h2>Export data</h2>
+    <p class="muted">CSV: date, item, value(s). Leave dates empty for everything.</p>
+    <label class="field-label" for="exp-from">From</label>
+    <input type="date" id="exp-from" />
+    <label class="field-label" for="exp-to">To</label>
+    <input type="date" id="exp-to" />
+    <p id="exp-count" class="muted"></p>
+    <button id="btn-export" class="btn primary big">Download CSV</button>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="screen-settings" class="screen">
+    <h2>Form setup</h2>
+    <p class="muted">Order rows with ▲ ▼. Merge puts two fields in one row.</p>
+    <div id="cfg-rows"></div>
+    <button id="btn-add-row" class="btn">+ Add field</button>
+    <button id="btn-save-cfg" class="btn primary big">Save form</button>
+
+    <h2>Configuration file</h2>
+    <button id="btn-cfg-export" class="btn">Export config</button>
+    <button id="btn-cfg-import" class="btn">Import config</button>
+    <input type="file" id="cfg-file" accept="application/json,.json" hidden />
+    <p class="muted">Import replaces the current form.</p>
+
+    <h2>App</h2>
+    <p id="storage-info" class="muted"></p>
+    <button id="btn-clear-cache" class="btn">Clear cache &amp; reload</button>
+    <p class="muted">Keeps your data. Fetches the latest app version.</p>
+
+    <h2>Version <span id="ver"></span></h2>
+    <div id="changelog"></div>
+  </section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="js/version.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.warn('[SW] Registration failed', err));
+    });
+  }
+</script>
+</body>
+</html>
