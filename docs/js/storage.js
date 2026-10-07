@@ -52,6 +52,16 @@ TR.Storage = (() => {
   const deleteEntry = id => tx('entries', 'readwrite', s => wrap(s.delete(id)));
   const allEntries = () => tx('entries', 'readonly', s => wrap(s.getAll()));
 
+  const getMeta = k => tx('meta', 'readonly', s => wrap(s.get(k)));
+  const setMeta = (k, v) => tx('meta', 'readwrite', s => wrap(s.put(v, k)));
+
+  // Replace everything (restore). Entries get fresh ids.
+  async function replaceAll(config, entries) {
+    await tx('entries', 'readwrite', s => wrap(s.clear()));
+    await addEntries(entries.map(({ date, item, values, ts }) => ({ date, item, values, ts })));
+    await saveConfig(config);
+  }
+
   // Entries with from <= date <= to (YYYY-MM-DD strings; either bound optional), sorted by date then id.
   async function entriesInRange(from, to) {
     const all = await allEntries();
@@ -60,5 +70,5 @@ TR.Storage = (() => {
       .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
   }
 
-  return { getConfig, saveConfig, addEntries, deleteEntry, allEntries, entriesInRange, DEFAULT_CONFIG };
+  return { getConfig, saveConfig, addEntries, deleteEntry, allEntries, getMeta, setMeta, replaceAll, entriesInRange, DEFAULT_CONFIG };
 })();

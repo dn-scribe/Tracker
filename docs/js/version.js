@@ -1,8 +1,13 @@
 window.TR = window.TR || {};
 
 TR.Version = {
-  current: '1.0.0',
+  current: '1.1.0',
   changelog: [
+    {
+      version: '1.1.0',
+      date: 'October 2026',
+      items: ['Full JSON backup and restore (share sheet / download)', 'Optional auto-backup file on desktop Chrome/Edge', 'Warning banner when entries are not backed up', 'Persistent-storage status in setup'],
+    },
     {
       version: '1.0.0',
       date: 'October 2026',

@@ -89,3 +89,9 @@ input:focus { outline: none; border-color: var(--accent); }
 }
 .changelog-ver { font-weight: 700; margin-top: 0.6rem; }
 .changelog ul { margin: 0.2rem 0; padding-left: 1.2rem; font-size: 0.85rem; }
+
+.banner {
+  display: block; width: 100%; font: inherit; font-size: 0.85rem; text-align: center;
+  padding: 0.6rem 0.8rem; border: none; border-bottom: 2px solid #b45309;
+  background: #fef3c7; color: #78350f; font-weight: 600; cursor: pointer;
+}

@@ -25,6 +25,8 @@
   </nav>
 </header>
 
+<button id="backup-banner" class="banner" hidden></button>
+
 <main id="app-main">
   <!-- ENTRY -->
   <section id="screen-entry" class="screen active">
@@ -51,6 +53,16 @@
     <input type="date" id="exp-to" />
     <p id="exp-count" class="muted"></p>
     <button id="btn-export" class="btn primary big">Download CSV</button>
+
+    <h2>Backup &amp; restore</h2>
+    <p class="muted">Your data lives only in this browser and can be lost. Keep a backup copy elsewhere.</p>
+    <p id="backup-status" class="muted"></p>
+    <button id="btn-backup" class="btn primary big">Back up now</button>
+    <button id="btn-auto" class="btn" hidden>Auto-backup to a file…</button>
+    <p id="auto-status" class="muted"></p>
+    <button id="btn-restore" class="btn">Restore from backup…</button>
+    <input type="file" id="restore-file" accept="application/json,.json" hidden />
+    <p class="muted">Restore replaces ALL current data and the form.</p>
   </section>
 
   <!-- SETTINGS -->
@@ -69,6 +81,7 @@
 
     <h2>App</h2>
     <p id="storage-info" class="muted"></p>
+    <p id="persist-info" class="muted"></p>
     <button id="btn-clear-cache" class="btn">Clear cache &amp; reload</button>
     <p class="muted">Keeps your data. Fetches the latest app version.</p>
 

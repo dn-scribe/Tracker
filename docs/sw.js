@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tracker-v1';
+const CACHE_NAME = 'tracker-v2';
 
 const SHELL = [
   './',

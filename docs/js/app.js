@@ -26,13 +26,110 @@
     return e;
   }
 
+  // ── Backup ──
+  const DAY = 86400000;
+  let fileHandle = null; // File System Access handle (desktop Chromium), kept in IndexedDB
+
+  const fmtTime = t => t ? new Date(t).toLocaleString() : 'never';
+
+  async function unsavedCount() {
+    const last = (await S.getMeta('lastBackup')) || 0;
+    return (await S.allEntries()).filter(e => e.ts > last).length;
+  }
+
+  async function refreshBackupUi() {
+    const last = await S.getMeta('lastBackup');
+    const n = await unsavedCount();
+    const banner = $('backup-banner');
+    const stale = !last || Date.now() - last > DAY;
+    banner.hidden = !(n > 0 && stale);
+    banner.textContent = `⚠ ${n} entr${n === 1 ? 'y' : 'ies'} not backed up (last backup: ${last ? fmtTime(last) : 'never'}). Tap to back up.`;
+    $('backup-status').textContent = `Last backup: ${fmtTime(last)} · ${n} not backed up`;
+    $('btn-auto').hidden = !window.showSaveFilePicker;
+    $('auto-status').textContent = window.showSaveFilePicker
+      ? (fileHandle ? `Auto-backup file: ${fileHandle.name} (updated after each save)` : 'Auto-backup file: not set')
+      : '';
+  }
+
+  async function backupJson() {
+    return JSON.stringify({
+      app: 'tracker', format: 1, exported: new Date().toISOString(),
+      config, entries: (await S.allEntries()).map(({ date, item, values, ts }) => ({ date, item, values, ts })),
+    }, null, 1);
+  }
+
+  async function writeToHandle(text) {
+    const w = await fileHandle.createWritable();
+    await w.write(text);
+    await w.close();
+  }
+
+  // Silent: rewrite the auto-backup file if permission is available.
+  async function autoBackup(interactive) {
+    if (!fileHandle) return false;
+    try {
+      let perm = await fileHandle.queryPermission({ mode: 'readwrite' });
+      if (perm !== 'granted' && interactive) perm = await fileHandle.requestPermission({ mode: 'readwrite' });
+      if (perm !== 'granted') return false;
+      await writeToHandle(await backupJson());
+      await S.setMeta('lastBackup', Date.now());
+      return true;
+    } catch (err) { console.warn('[backup] auto failed', err); return false; }
+  }
+
+  async function backupNow() {
+    if (await autoBackup(true)) { toast('Backed up to file'); return refreshBackupUi(); }
+    const text = await backupJson();
+    const name = `tracker-backup-${today()}.json`;
+    const file = new File([text], name, { type: 'application/json' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: name });
+      } else {
+        download(name, text, 'application/json');
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') return; // user cancelled the share sheet — not backed up
+      download(name, text, 'application/json');
+    }
+    await S.setMeta('lastBackup', Date.now());
+    toast('Backup created — keep the file somewhere safe');
+    refreshBackupUi();
+  }
+
+  async function pickAutoFile() {
+    try {
+      fileHandle = await window.showSaveFilePicker({
+        suggestedName: 'tracker-backup.json',
+        types: [{ description: 'Tracker backup', accept: { 'application/json': ['.json'] } }],
+      });
+      await S.setMeta('fileHandle', fileHandle);
+      await autoBackup(true);
+      toast('Auto-backup enabled');
+    } catch (err) { if (err.name !== 'AbortError') toast('Failed: ' + err.message); }
+    refreshBackupUi();
+  }
+
+  async function restore(file) {
+    try {
+      const b = JSON.parse(await file.text());
+      if (b.app !== 'tracker' || !validConfig(b.config) || !Array.isArray(b.entries)) throw new Error('not a Tracker backup');
+      if (!confirm(`Replace ALL current data with this backup (${b.entries.length} entries, exported ${b.exported})?`)) return;
+      await S.replaceAll(b.config, b.entries);
+      config = b.config;
+      await S.setMeta('lastBackup', Date.now());
+      toast(`Restored ${b.entries.length} entries`);
+      show('entry');
+    } catch (err) { toast('Restore failed: ' + err.message); }
+  }
+
   // ── Navigation ──
   function show(name) {
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + name));
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.screen === name));
     if (name === 'entry') renderEntry();
     if (name === 'history') renderHistory();
-    if (name === 'export') updateExportCount();
+    if (name === 'export') { updateExportCount(); refreshBackupUi(); }
     if (name === 'settings') renderSettings();
     window.scrollTo(0, 0);
   }
@@ -68,6 +165,8 @@
     await S.addEntries(list);
     toast(`Saved ${list.length} item${list.length > 1 ? 's' : ''}`);
     renderEntry();
+    await autoBackup(true); // click gesture lets the browser re-grant file permission
+    refreshBackupUi();
   }
 
   // ── History ──
@@ -84,6 +183,7 @@
         if (!confirm(`Delete ${e.item} = ${e.values.join(' / ')} on ${e.date}?`)) return;
         await S.deleteEntry(e.id);
         renderHistory();
+        autoBackup(false);
       };
       const b = el('b', { textContent: e.item });
       box.append(el('div', { className: 'hist-item' }, el('span', {}, b, ': ' + e.values.join(' / ')), del));
@@ -130,6 +230,13 @@
       log.append(el('div', { className: 'changelog-ver', textContent: `v${c.version} — ${c.date}` }));
       log.append(el('ul', {}, ...c.items.map(i => el('li', { textContent: i }))));
     });
+    if (navigator.storage && navigator.storage.persisted) {
+      navigator.storage.persisted().then(p => {
+        $('persist-info').textContent = p
+          ? 'Persistent storage: granted (browser will not evict data automatically).'
+          : 'Persistent storage: NOT granted — browser may evict data. Install the app to home screen and keep backups.';
+      });
+    }
     if (navigator.storage && navigator.storage.estimate) {
       navigator.storage.estimate().then(({ usage, quota }) => {
         $('storage-info').textContent = `Storage: ${(usage / 1048576).toFixed(2)} MB used of ${Math.round(quota / 1048576)} MB`;
@@ -217,6 +324,7 @@
   async function init() {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     config = await S.getConfig();
+    fileHandle = (await S.getMeta('fileHandle')) || null;
     document.querySelectorAll('.tab').forEach(t => { t.onclick = () => show(t.dataset.screen); });
     $('header-title').textContent = `Tracker v${TR.Version.current}`;
     $('btn-save').onclick = saveEntry;
@@ -229,7 +337,13 @@
     $('btn-cfg-import').onclick = () => $('cfg-file').click();
     $('cfg-file').onchange = e => { if (e.target.files[0]) importCfg(e.target.files[0]); e.target.value = ''; };
     $('btn-clear-cache').onclick = clearCache;
+    $('btn-backup').onclick = backupNow;
+    $('backup-banner').onclick = backupNow;
+    $('btn-auto').onclick = pickAutoFile;
+    $('btn-restore').onclick = () => $('restore-file').click();
+    $('restore-file').onchange = e => { if (e.target.files[0]) restore(e.target.files[0]); e.target.value = ''; };
     show('entry');
+    refreshBackupUi();
   }
 
   init();
