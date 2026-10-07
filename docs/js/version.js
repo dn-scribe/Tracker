@@ -1,8 +1,13 @@
 window.TR = window.TR || {};
 
 TR.Version = {
-  current: '1.1.0',
+  current: '1.2.0',
   changelog: [
+    {
+      version: '1.2.0',
+      date: 'October 2026',
+      items: ['Entries now record time (editable, defaults to now); shown in history, CSV and backups'],
+    },
     {
       version: '1.1.0',
       date: 'October 2026',

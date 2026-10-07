@@ -30,8 +30,10 @@
 <main id="app-main">
   <!-- ENTRY -->
   <section id="screen-entry" class="screen active">
-    <label class="field-label" for="entry-date">Date</label>
-    <input type="date" id="entry-date" />
+    <div class="row">
+      <div><label class="field-label" for="entry-date">Date</label><input type="date" id="entry-date" /></div>
+      <div><label class="field-label" for="entry-time">Time</label><input type="time" id="entry-time" /></div>
+    </div>
     <div id="entry-form"></div>
     <button id="btn-save" class="btn primary big">Save</button>
   </section>
@@ -46,7 +48,7 @@
   <!-- EXPORT -->
   <section id="screen-export" class="screen">
     <h2>Export data</h2>
-    <p class="muted">CSV: date, item, value(s). Leave dates empty for everything.</p>
+    <p class="muted">CSV: date, time, item, value(s). Leave dates empty for everything.</p>
     <label class="field-label" for="exp-from">From</label>
     <input type="date" id="exp-from" />
     <label class="field-label" for="exp-to">To</label>

@@ -12,7 +12,7 @@ Vanilla JS PWA for tracking personal data (modeled on the sidur project). Source
 - `docs/sw.js` — service worker (cache-first shell)
 - `docs/css/style.css` — styles (big fonts: `html { font-size: 22px }`)
 
-Data model: entry = `{id, date: YYYY-MM-DD, item, values: string[], ts}`. Config = `{rows: [{fields: [{name, def}]}]}`, 1 or 2 fields per row (2 = merged, same row in the form, item name = names joined by " / ").
+Data model: entry = `{id, date: YYYY-MM-DD, time: HH:MM, item, values: string[], ts}` (`time` absent on pre-1.2 entries; use `Storage.timeOf`). Config = `{rows: [{fields: [{name, def}]}]}`, 1 or 2 fields per row (2 = merged, same row in the form, item name = names joined by " / ").
 
 ## Release checklist — every change
 

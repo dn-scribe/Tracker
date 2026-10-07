@@ -58,8 +58,16 @@ TR.Storage = (() => {
   // Replace everything (restore). Entries get fresh ids.
   async function replaceAll(config, entries) {
     await tx('entries', 'readwrite', s => wrap(s.clear()));
-    await addEntries(entries.map(({ date, item, values, ts }) => ({ date, item, values, ts })));
+    await addEntries(entries.map(({ date, time, item, values, ts }) => ({ date, time, item, values, ts })));
     await saveConfig(config);
+  }
+
+  const pad = n => String(n).padStart(2, '0');
+  // Entry time HH:MM; entries from v1.0/1.1 have none, so derive from save timestamp.
+  function timeOf(e) {
+    if (e.time) return e.time;
+    const d = new Date(e.ts || 0);
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
   // Entries with from <= date <= to (YYYY-MM-DD strings; either bound optional), sorted by date then id.
@@ -67,8 +75,8 @@ TR.Storage = (() => {
     const all = await allEntries();
     return all
       .filter(e => (!from || e.date >= from) && (!to || e.date <= to))
-      .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+      .sort((a, b) => a.date.localeCompare(b.date) || timeOf(a).localeCompare(timeOf(b)) || a.id - b.id);
   }
 
-  return { getConfig, saveConfig, addEntries, deleteEntry, allEntries, getMeta, setMeta, replaceAll, entriesInRange, DEFAULT_CONFIG };
+  return { getConfig, saveConfig, addEntries, deleteEntry, allEntries, getMeta, setMeta, replaceAll, timeOf, entriesInRange, DEFAULT_CONFIG };
 })();

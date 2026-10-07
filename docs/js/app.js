@@ -6,6 +6,10 @@
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
+  const nowTime = () => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
   const rowName = row => row.fields.map(f => f.name).join(' / ');
 
   let config = null;   // saved config
@@ -54,7 +58,7 @@
   async function backupJson() {
     return JSON.stringify({
       app: 'tracker', format: 1, exported: new Date().toISOString(),
-      config, entries: (await S.allEntries()).map(({ date, item, values, ts }) => ({ date, item, values, ts })),
+      config, entries: (await S.allEntries()).map(({ date, time, item, values, ts }) => ({ date, time, item, values, ts })),
     }, null, 1);
   }
 
@@ -137,6 +141,7 @@
   // ── Entry ──
   function renderEntry() {
     if (!$('entry-date').value) $('entry-date').value = today();
+    $('entry-time').value = nowTime();
     const form = $('entry-form');
     form.textContent = '';
     config.rows.forEach((row, ri) => {
@@ -155,11 +160,12 @@
 
   async function saveEntry() {
     const date = $('entry-date').value || today();
+    const time = $('entry-time').value || nowTime();
     const list = [];
     config.rows.forEach((row, ri) => {
       const values = row.fields.map((_, fi) => $(`in-${ri}-${fi}`).value.trim());
       if (values.every(v => v === '')) return;
-      list.push({ date, item: rowName(row), values, ts: Date.now() });
+      list.push({ date, time, item: rowName(row), values, ts: Date.now() });
     });
     if (!list.length) { toast('Nothing to save'); return; }
     await S.addEntries(list);
@@ -180,13 +186,14 @@
       if (e.date !== lastDate) { box.append(el('div', { className: 'hist-day', textContent: e.date })); lastDate = e.date; }
       const del = el('button', { className: 'btn small danger', textContent: '✕', title: 'Delete' });
       del.onclick = async () => {
-        if (!confirm(`Delete ${e.item} = ${e.values.join(' / ')} on ${e.date}?`)) return;
+        if (!confirm(`Delete ${e.item} = ${e.values.join(' / ')} on ${e.date} ${S.timeOf(e)}?`)) return;
         await S.deleteEntry(e.id);
         renderHistory();
         autoBackup(false);
       };
       const b = el('b', { textContent: e.item });
-      box.append(el('div', { className: 'hist-item' }, el('span', {}, b, ': ' + e.values.join(' / ')), del));
+      const t = el('span', { className: 'muted', textContent: S.timeOf(e) + ' ' });
+      box.append(el('div', { className: 'hist-item' }, el('span', {}, t, b, ': ' + e.values.join(' / ')), del));
     });
     $('btn-more').hidden = all.length <= histLimit;
   }
@@ -212,8 +219,8 @@
     const from = $('exp-from').value, to = $('exp-to').value;
     const list = await S.entriesInRange(from, to);
     const width = Math.max(1, ...list.map(e => e.values.length));
-    const head = ['date', 'item', ...Array.from({ length: width }, (_, i) => 'value' + (i + 1))];
-    const lines = [head, ...list.map(e => [e.date, e.item, ...e.values])].map(r => r.map(csvCell).join(','));
+    const head = ['date', 'time', 'item', ...Array.from({ length: width }, (_, i) => 'value' + (i + 1))];
+    const lines = [head, ...list.map(e => [e.date, S.timeOf(e), e.item, ...e.values])].map(r => r.map(csvCell).join(','));
     const suffix = from || to ? `${from || 'start'}_${to || 'end'}` : 'all';
     download(`tracker-${suffix}.csv`, lines.join('\r\n') + '\r\n', 'text/csv');
     toast(`Exported ${list.length} entries`);
